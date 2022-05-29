@@ -203,7 +203,7 @@ jobs:
 
       - name: Check if WebGL build exists
         id: check-web-gl
-        run: test Builds/WebGL/index.html && echo '::set-output name=deploy-web-gl::true' || echo ''::set-output name=deploy-web-gl::false'
+        run: test Builds/WebGL/index.html && echo '::set-output name=deploy-web-gl::true' || echo '::set-output name=deploy-web-gl::false'
 
       - name: Publish WebGL to gh-pages
         if: ${{ steps.check-web-gl.outputs.deploy-web-gl }}
