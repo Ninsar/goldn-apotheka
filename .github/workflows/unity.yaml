@@ -116,64 +116,65 @@ jobs:
           path: Builds/${{matrix.platform}}
           retention-days: 1
 
-  build-ios:
-    if: startsWith(github.ref, 'refs/tags/v') # To run only on Tags 
-    needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [Android, iOS]
-        build-aab: [true]
-        sign: [false]
+  # uncomment to build for iOS
+  # build-ios:
+  #   if: startsWith(github.ref, 'refs/tags/v') # To run only on Tags 
+  #   needs: build
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       platform: [Android, iOS]
+  #       build-aab: [true]
+  #       sign: [false]
     
-    runs-on: macos-latest
+  #   runs-on: macos-latest
 
-    steps:
-      - uses: actions/checkout@v2
-        if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
-        with:
-          lfs: true
-          submodules: 'recursive'
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
+  #       with:
+  #         lfs: true
+  #         submodules: 'recursive'
 
-      - name: Download iOS Artifact
-        if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
-        uses: actions/download-artifact@v2
-        with:
-          name: Build-iOS
-          path: Builds/iOS
+  #     - name: Download iOS Artifact
+  #       if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: Build-iOS
+  #         path: Builds/iOS
 
-      - name: Fix File Permissions
-        if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
-        run: |
-          find ${{ format('{0}/Builds/iOS', github.workspace) }} -type f -name "**.sh" -exec chmod +x {} \;
+  #     - name: Fix File Permissions
+  #       if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
+  #       run: |
+  #         find ${{ format('{0}/Builds/iOS', github.workspace) }} -type f -name "**.sh" -exec chmod +x {} \;
 
-      - name: Build Xcode project
-        if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
-        env:
-          APPLE_CONNECT_EMAIL: ${{ secrets.APPLE_CONNECT_EMAIL }}
-          APPLE_DEVELOPER_EMAIL: ${{ secrets.APPLE_DEVELOPER_EMAIL }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          MATCH_URL: ${{ secrets.MATCH_URL }}
-          MATCH_PERSONAL_ACCESS_TOKEN: ${{ secrets.MATCH_PERSONAL_ACCESS_TOKEN }}
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
-          IOS_APP_ID: com.company.application # Change it to match your unity bundle id
-          IOS_BUILD_PATH: ${{ format('{0}/Builds/iOS', github.workspace) }}
-          PROJECT_NAME: Your Project Name
-          # USE_PODS: true # Uncomment to use cocoapods
-        run:
-          bundle install
-          bundle exec fastlane ios beta
+  #     - name: Build Xcode project
+  #       if: matrix.platform == 'iOS' # run only on iOS, to enable copy-pasted matrix
+  #       env:
+  #         APPLE_CONNECT_EMAIL: ${{ secrets.APPLE_CONNECT_EMAIL }}
+  #         APPLE_DEVELOPER_EMAIL: ${{ secrets.APPLE_DEVELOPER_EMAIL }}
+  #         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  #         MATCH_URL: ${{ secrets.MATCH_URL }}
+  #         MATCH_PERSONAL_ACCESS_TOKEN: ${{ secrets.MATCH_PERSONAL_ACCESS_TOKEN }}
+  #         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+  #         APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+  #         APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+  #         APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+  #         IOS_APP_ID: com.company.application # Change it to match your unity bundle id
+  #         IOS_BUILD_PATH: ${{ format('{0}/Builds/iOS', github.workspace) }}
+  #         PROJECT_NAME: Your Project Name
+  #         # USE_PODS: true # Uncomment to use cocoapods
+  #       run:
+  #         bundle install
+  #         bundle exec fastlane ios beta
 
-      - name: Upload .ipa
-        if: matrix.platform == 'iOS'
-        uses: actions/upload-artifact@v2
-        with:
-          name: Build-iOS
-          path: Builds/iOS
-          retention-days: 1
+  #     - name: Upload .ipa
+  #       if: matrix.platform == 'iOS'
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: Build-iOS
+  #         path: Builds/iOS
+  #         retention-days: 1
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -199,12 +200,16 @@ jobs:
             Builds/**/*.ipa
             Builds/*.tar.gz
 
+      - name: Check if WebGL build exists
+        id: check-web-gl
+        run: test Builds/WebGL/index.html && echo '::set-output name=deploy-web-gl::true' || echo ''::set-output name=deploy-web-gl::false'
 
       - name: Publish WebGL to gh-pages
+        if: ${{ steps.check-web-gl.outputs.deploy-web-gl }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./Builds/WebGL
+          publish_dir: Builds/WebGL
 
       - name: Cleanup to avoid storage limit
         if: always()
